@@ -9,24 +9,27 @@ import pandas as pd
 
 def unpack_csv_from_zipfile(
     zipfile_path: Union[str, PathLike], extract_dir: Union[str, PathLike]
-):
+) -> list[Union[str, PathLike]]:
     """
-    Unpacks CSVs from a ZIP file.
+    Unpacks CSVs from a ZIP file into "temp" directory inside extract_dir.
+    Directory extract_dir/temp must be cleaned up manually
     Args:
         zipfile_path: path to zipfile
         extract_dir: path to the directory where the files should be extracted to
 
     Returns:
-        None
+        Paths to extracted files
     """
     if not zipfile.is_zipfile(zipfile_path):
         raise zipfile.BadZipfile(f"File '{zipfile_path}' is not a proper ZIP file")
 
+    file_list = []
     with zipfile.ZipFile(zipfile_path) as zip_file:
         name_list = zip_file.namelist()
         for name in name_list:
             if name.endswith(".csv"):
-                zip_file.extract(name, path=extract_dir)
+                file_list.append(zip_file.extract(name, path=extract_dir))
+    return file_list
 
 
 def assemble_dataframe(csv_dir_path: Path) -> pd.DataFrame:
