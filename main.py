@@ -11,6 +11,10 @@ import pandas as pd
 from utils.async_utils import get_addresses, get_weather_bulk
 from utils.dataframe_utils import (
     draw_and_save_temp_graph,
+    find_max_temp_city,
+    find_max_temp_delta_city,
+    find_max_temp_diff,
+    find_min_temp_city,
     refine_data,
     select_most_hoteled_cities,
 )
@@ -21,30 +25,34 @@ from utils.file_utils import (
 )
 
 
-def main():
+def main():  # noqa: CCR001
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "input_path", metavar="input_path", type=str, help="Path to ZIP archive"
+        "input_path",
+        metavar="input_path",
+        type=str,
+        help="Path to ZIP archive with input data",
     )
     parser.add_argument(
         "output_path",
         metavar="output_path",
         type=str,
-        help="Path to the output directory",
+        help="Path to output directory",
     )
     parser.add_argument(
-        "cores_number",
-        metavar="j",
+        "requests_per_second",
+        metavar="request_rate",
         type=int,
         nargs="?",
         default=1,
-        help="Number of cores for multiprocessing use",
+        help="Number of requests sent per second while getting geocoding data",
     )
 
     args = parser.parse_args()
 
     input_file = Path(args.input_path)
     output_dir = Path(args.output_path)
+    requests_per_second = args.requests_per_second
     extraction_dir = output_dir / "temp"
 
     date_today = datetime.utcnow().date()
@@ -102,30 +110,67 @@ def main():
         )
     }
 
-    # Drawing and saving temperature plots
-    img_dir = output_dir / "img"
-    if not os.path.exists(img_dir):
-        os.mkdir(img_dir)
-    for (country, city), weather in weather_per_city.items():
-        draw_and_save_temp_graph(
-            weather, img_dir, city_name=f"{city}_{country}", today=date_today
+    # Computing and printing data statistics
+    print("Max temperature")  # noqa: T001
+    for _, row in find_max_temp_city(weather_per_city).iterrows():
+        print(  # noqa: T001
+            f"\t{row['City']} ({row['Country']}): {row['temp']:.2f} C at {row['date']}"
+        )
+    print("Min temperature")  # noqa: T001
+    for _, row in find_min_temp_city(weather_per_city).iterrows():
+        print(  # noqa: T001
+            f"\t{row['City']} ({row['Country']}): {row['temp']:.2f} C at {row['date']}"
+        )
+    print("Max daily temperature difference")  # noqa: T001
+    for _, row in find_max_temp_diff(weather_per_city).iterrows():
+        print(  # noqa: T001
+            f"\t{row['City']} ({row['Country']}): "
+            f"{row['temp_diff']:.2f} C at {row['date']}"
+        )
+    print("Max temperature change over current period")  # noqa: T001
+    for _, row in find_max_temp_delta_city(weather_per_city).iterrows():
+        print(  # noqa: T001
+            f"\t{row['City']} ({row['Country']}): {row['temp_delta']:.2f} C"
         )
 
     # Getting hotels' addresses
     addresses = asyncio.run(
-        get_addresses(hotels_of_interest[["Latitude", "Longitude"]].values)
+        get_addresses(
+            hotels_of_interest[["Latitude", "Longitude"]].values,
+            req_per_sec=requests_per_second,
+        )
     )
     hotels_of_interest["Address"] = addresses
 
     # Saving data
-    csv_save_dir = output_dir / "csv"
-    if not os.path.exists(csv_save_dir):
-        os.mkdir(csv_save_dir)
-    save_dataframe_as_csv_splitted(
-        hotels_of_interest[["Name", "Address", "Latitude", "Longitude"]],
-        csv_save_dir,
-        name_prefix="hotels",
-    )
+    for _, row in most_hoteled_cities_df.iterrows():
+        save_dir = output_dir / f"{row['City']}_{row['Country']}"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        curr_city_hotels = hotels_of_interest[
+            (hotels_of_interest["City"] == row["City"])
+            & (hotels_of_interest["Country"] == row["Country"])
+        ]
+        curr_city_hotels.reset_index(inplace=True, drop=True)
+
+        save_dataframe_as_csv_splitted(
+            curr_city_hotels[["Name", "Address", "Latitude", "Longitude"]],
+            save_dir,
+            name_prefix="hotels",
+        )
+
+        draw_and_save_temp_graph(
+            weather_per_city[(row["Country"], row["City"])],
+            save_dir,
+            f"{row['City']}_{row['Country']}",
+            datetime.utcnow().date(),
+        )
+
+        most_hoteled_cities_df[
+            (most_hoteled_cities_df["City"] == row["City"])
+            & (most_hoteled_cities_df["Country"] == row["Country"])
+        ][["Latitude", "Longitude"]].to_csv(save_dir / "center_coords.csv", index=None)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import date, datetime, timedelta
-from typing import Generator, Iterable, Union
+from typing import Generator, Iterable, List, Union
 
 import aiohttp
 import geopy as gp
@@ -28,11 +28,13 @@ async def get_adress_by_coordinates(
     return location.address
 
 
-async def get_addresses(coords: Iterable) -> list[Union[str, None]]:
+async def get_addresses(coords: Iterable, req_per_sec=1) -> List[Union[str, None]]:
     """
     Retrieves a bunch of addresses using HERE geocoding API
     Args:
         coords: A collection of pairs latitude-longitude
+        req_per_sec (int): requests per second, used to control geocoding API calls
+            flow. If you keep getting time-out errors consider reducing this parameter.
 
     Returns:
         List of addresses
@@ -41,8 +43,11 @@ async def get_addresses(coords: Iterable) -> list[Union[str, None]]:
         apikey=here_api_key,
         user_agent="wheather_monitoring",
         adapter_factory=gp.adapters.AioHTTPAdapter,
+        timeout=10,
     ) as geolocator:
-        reverse = AsyncRateLimiter(geolocator.reverse, min_delay_seconds=1 / 32)
+        reverse = AsyncRateLimiter(
+            geolocator.reverse, min_delay_seconds=1 / req_per_sec
+        )
         return await asyncio.gather(
             *[get_adress_by_coordinates(lat, lon, reverse) for lat, lon in coords]
         )
@@ -73,6 +78,9 @@ async def get_weather(
     Due to 5-day limitation of history data it's impossible to get data for the
     whole 5-th (starting from 00:00 UTC) day before today, so it is not included.
     However, this parameter can be adjusted.
+
+    For requesting weather for several places at once see get_weather_bulk().
+
     Args:
         lat: latitude of a place
         lon: longitude of a place
@@ -112,7 +120,7 @@ async def get_weather(
     return pd.concat([history_weather, curr_and_forecasted_weather])
 
 
-async def get_weather_bulk(coords: Iterable, history_depth=4) -> list[pd.DataFrame]:
+async def get_weather_bulk(coords: Iterable, history_depth=4) -> List[pd.DataFrame]:
     """
     An adapter function for asynchronously calling "get_weather" for several locations
         at once.
