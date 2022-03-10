@@ -1,3 +1,5 @@
+"""This module contains functions providing async API calls"""
+
 import asyncio
 import json
 from datetime import date, datetime, timedelta
@@ -8,7 +10,7 @@ import geopy as gp
 import pandas as pd
 from geopy.extra.rate_limiter import AsyncRateLimiter
 
-from api_keys import here_api_key, weathermap_api_key
+from api_keys import HERE_API_KEY, WHEATHERMAP_API_KEY
 
 
 async def get_adress_by_coordinates(
@@ -40,7 +42,7 @@ async def get_addresses(coords: Iterable, req_per_sec=1) -> List[Union[str, None
         List of addresses
     """
     async with gp.geocoders.Here(
-        apikey=here_api_key,
+        apikey=HERE_API_KEY,
         user_agent="wheather_monitoring",
         adapter_factory=gp.adapters.AioHTTPAdapter,
         timeout=10,
@@ -97,7 +99,7 @@ async def get_weather(
     date_today = datetime.utcnow().date()
     curr_and_fore_req = (
         f"{req_prefix}?lat={lat}&lon={lon}&exclude={exclude_part}"
-        f"&appid={weathermap_api_key}&units=metric"
+        f"&appid={WHEATHERMAP_API_KEY}&units=metric"
     )
 
     history_timestamps = (
@@ -106,7 +108,7 @@ async def get_weather(
     )
     history_reqs = [
         f"{req_prefix}/timemachine?lat={lat}&lon={lon}&dt={his_timestamp}&"
-        f"appid={weathermap_api_key}&units=metric"
+        f"appid={WHEATHERMAP_API_KEY}&units=metric"
         for his_timestamp in history_timestamps
     ]
 
@@ -193,8 +195,3 @@ def date_range(
     """
     for days in range(start.toordinal(), stop.toordinal()):
         yield datetime.fromordinal(days)
-
-
-if __name__ == "__main__":
-    d = asyncio.run(get_weather(48.204, 16.351))
-    print(d)  # noqa

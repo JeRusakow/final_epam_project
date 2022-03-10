@@ -1,3 +1,5 @@
+"""This module contains functions providing dataframe processing"""
+
 from os import PathLike
 
 import numpy as np
@@ -86,27 +88,27 @@ def draw_and_save_temp_graph(
     Returns:
     None
     """
-    fig, ax = plt.subplots()
-    ax.plot(
+    fig, axis = plt.subplots()
+    axis.plot(
         temp_data[["date"]], temp_data[["min_temp"]], c="cyan", label="Min temperature"
     )
-    ax.plot(
+    axis.plot(
         temp_data[["date"]], temp_data[["max_temp"]], c="red", label="Max temperature"
     )
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Temperature C")
-    ax.set_axisbelow(True)
-    ax.grid(True)
-    ax.margins(x=0)
-    ax.legend()
+    axis.set_xlabel("Date")
+    axis.set_ylabel("Temperature C")
+    axis.set_axisbelow(True)
+    axis.grid(True)
+    axis.margins(x=0)
+    axis.legend()
 
     fig.autofmt_xdate(rotation=45)
 
     if city_name is not None:
-        ax.set_title(f"Weather in {city_name}")
+        axis.set_title(f"Weather in {city_name}")
 
     if today is not None:
-        ax.axvline(x=today, c="black")
+        axis.axvline(x=today, c="black")
 
     fig.savefig(fname=f"{save_path}/weather_{city_name.lower()}.png")
 
