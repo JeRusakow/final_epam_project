@@ -1,8 +1,3 @@
-"""
-This is the main module of the app.
-It contains main() and provides argument parsing
-"""
-
 import argparse
 import asyncio
 import os
@@ -31,7 +26,6 @@ from utils.file_utils import (
 
 
 def main():
-    """This is the main method of the app"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "input_path",

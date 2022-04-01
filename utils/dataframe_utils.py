@@ -50,7 +50,7 @@ def select_most_hoteled_cities(dataframe: pd.DataFrame) -> pd.DataFrame:
             "Country", "City" for hotel location and ome more for hotel info.
 
     Returns:
-    DataFrame with "Country", "City" and "size" column for an amount of hotels per each
+    DataFrame with "Country", "City" and "size" column for the amount of hotels per each
         country.
     """
     countries = np.unique(dataframe["Country"])
@@ -61,15 +61,17 @@ def select_most_hoteled_cities(dataframe: pd.DataFrame) -> pd.DataFrame:
     most_hotels_df_list = []
 
     for country in countries:
-        hotels_in_country = (
-            hotels_grouped[hotels_grouped["Country"] == country]
-            .sort_values(["size"], ascending=False, inplace=False)
-            .head(1)[["Country", "City"]]
+        max_hotels_in_country = max(hotels_grouped[hotels_grouped["Country"] == country]["size"])
+        print(f"For country {country} max hotels is {max_hotels_in_country}")
+
+        most_hotels_df_list.append(
+            hotels_grouped[
+                (hotels_grouped["Country"] == country)
+                & (hotels_grouped["size"] == max_hotels_in_country)
+                ]
         )
 
-        most_hotels_df_list.append(hotels_in_country)
-
-    return pd.concat(most_hotels_df_list)
+    return pd.concat(most_hotels_df_list)[["Country", "City"]]
 
 
 def draw_and_save_temp_graph(
@@ -204,7 +206,7 @@ def find_max_temp_diff(weather_dict: dict) -> pd.DataFrame:
 def find_max_temp_delta_city(weather_dict: dict) -> pd.DataFrame:
     """
     Finds the city undergone the largest temperature positive change throughout all
-    the data. Compared are mean temperatures of max_temp and min_temp.
+    the data. Compared are the mean of max_temp and min_temp values.
 
     Args:
         weather_dict: A dictionary of {(country, city): weather_in_city_df}. Where

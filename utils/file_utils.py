@@ -62,6 +62,6 @@ def save_dataframe_as_csv_splitted(
     """
 
     for idx, row_cnt in enumerate(range(0, len(dataframe), chunk_size)):
-        tmp_chunk = dataframe[row_cnt: row_cnt + chunk_size]
+        tmp_chunk = dataframe[row_cnt : row_cnt + chunk_size]
         chunk_path = f"{dest_dir}/{name_prefix}_{idx:04d}.csv"
         tmp_chunk.to_csv(chunk_path)

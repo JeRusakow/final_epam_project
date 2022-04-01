@@ -87,7 +87,7 @@ async def get_weather(
         lat: latitude of a place
         lon: longitude of a place
         history_depth: the depth of history data to be fetched.
-        session: a HTTP session object
+        session: an HTTP session object
 
     Returns:
     DataFrame of three columns: "date", "max_temp", "min_temp". Index column
